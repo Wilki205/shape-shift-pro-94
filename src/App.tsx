@@ -9,6 +9,12 @@ import Students from "./pages/Students";
 import StudentDetail from "./pages/StudentDetail";
 import NewStudent from "./pages/NewStudent";
 import NewAssessment from "./pages/NewAssessment";
+import Assessments from "./pages/Assessments";
+import Reports from "./pages/Reports";
+import ReportDetail from "./pages/ReportDetail";
+import Schedule from "./pages/Schedule";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import { AppLayout } from "./components/AppLayout";
 
@@ -22,18 +28,24 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/students" element={<Students />} />
             <Route path="/students/new" element={<NewStudent />} />
             <Route path="/students/:id" element={<StudentDetail />} />
-            <Route path="/students/:id/assessment/new" element={<NewAssessment />} />
-            <Route path="/assessments" element={<Dashboard />} />
-            <Route path="/reports" element={<Dashboard />} />
-            <Route path="/schedule" element={<Dashboard />} />
-            <Route path="/profile" element={<Dashboard />} />
-            <Route path="/settings" element={<Dashboard />} />
+            <Route
+              path="/students/:id/assessment/new"
+              element={<NewAssessment />}
+            />
+            <Route path="/assessments" element={<Assessments />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/reports/:assessmentId" element={<ReportDetail />} />
+            <Route path="/schedule" element={<Schedule />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

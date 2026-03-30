@@ -9,6 +9,9 @@ import {
   Activity,
   TrendingUp,
   ClipboardList,
+  Ruler,
+  Scale,
+  Waves,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mockAssessments, mockStudents } from "@/lib/mock-data";
@@ -60,6 +63,34 @@ function SectionCard({
         </h3>
       </div>
       {children}
+    </div>
+  );
+}
+
+function DataGrid({
+  items,
+}: {
+  items: Array<{ label: string; value?: string | number | null; unit?: string }>;
+}) {
+  const visibleItems = items.filter(
+    (item) => item.value !== undefined && item.value !== null && item.value !== "",
+  );
+
+  if (visibleItems.length === 0) {
+    return <p className="text-sm text-muted-foreground">Nenhum dado disponível.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {visibleItems.map((item) => (
+        <div key={item.label} className="rounded-lg border p-4">
+          <p className="text-xs text-muted-foreground">{item.label}</p>
+          <p className="mt-1 font-medium text-foreground">
+            {item.value}
+            {item.unit ? item.unit : ""}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }
@@ -121,9 +152,17 @@ export default function ReportDetail() {
     window.print();
   };
 
+  const methodLabel =
+    assessment.method === "skinfolds"
+      ? "Dobras cutâneas"
+      : assessment.method === "bioimpedance"
+      ? "Bioimpedância"
+      : assessment.method === "both"
+      ? "Dobras + Bioimpedância"
+      : "Não informado";
+
   return (
     <div className="space-y-6 animate-fade-in print:space-y-4">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div className="flex items-start gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/reports")}>
@@ -146,7 +185,6 @@ export default function ReportDetail() {
         </Button>
       </div>
 
-      {/* Print header */}
       <div className="hidden print:block">
         <h1 className="font-heading text-3xl font-bold text-foreground">
           Relatório de Avaliação Física
@@ -156,7 +194,6 @@ export default function ReportDetail() {
         </p>
       </div>
 
-      {/* Hero summary */}
       <div className="rounded-2xl border bg-card p-6 shadow-card">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-4">
@@ -186,7 +223,6 @@ export default function ReportDetail() {
         </div>
       </div>
 
-      {/* Info blocks */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <SummaryCard
           title="Aluno"
@@ -204,13 +240,12 @@ export default function ReportDetail() {
           subtitle="Responsável pelo atendimento"
         />
         <SummaryCard
-          title="Objetivo"
-          value={student.goal}
-          subtitle="Meta principal do aluno"
+          title="Método / Protocolo"
+          value={methodLabel}
+          subtitle={assessment.protocol || "Não informado"}
         />
       </div>
 
-      {/* Comparison */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <SectionCard
           title="Dados do aluno"
@@ -322,16 +357,76 @@ export default function ReportDetail() {
         </SectionCard>
       </div>
 
-      {/* Report notes */}
+      <SectionCard
+        title="Circunferências"
+        icon={<Ruler className="h-5 w-5 text-muted-foreground" />}
+      >
+        <DataGrid
+          items={[
+            { label: "Braço Direito", value: assessment.circumferences?.rightArm, unit: " cm" },
+            { label: "Braço Esquerdo", value: assessment.circumferences?.leftArm, unit: " cm" },
+            { label: "Peitoral", value: assessment.circumferences?.chest, unit: " cm" },
+            { label: "Cintura", value: assessment.circumferences?.waist, unit: " cm" },
+            { label: "Abdômen", value: assessment.circumferences?.abdomen, unit: " cm" },
+            { label: "Quadril", value: assessment.circumferences?.hips, unit: " cm" },
+            { label: "Coxa Direita", value: assessment.circumferences?.rightThigh, unit: " cm" },
+            { label: "Coxa Esquerda", value: assessment.circumferences?.leftThigh, unit: " cm" },
+            { label: "Panturrilha Direita", value: assessment.circumferences?.rightCalf, unit: " cm" },
+            { label: "Panturrilha Esquerda", value: assessment.circumferences?.leftCalf, unit: " cm" },
+          ]}
+        />
+      </SectionCard>
+
+      <SectionCard
+        title="Dobras Cutâneas"
+        icon={<Scale className="h-5 w-5 text-muted-foreground" />}
+      >
+        <DataGrid
+          items={[
+            { label: "Tríceps", value: assessment.skinfolds?.triceps, unit: " mm" },
+            { label: "Bíceps", value: assessment.skinfolds?.biceps, unit: " mm" },
+            { label: "Subescapular", value: assessment.skinfolds?.subscapular, unit: " mm" },
+            { label: "Suprailíaca", value: assessment.skinfolds?.suprailiac, unit: " mm" },
+            { label: "Abdominal", value: assessment.skinfolds?.abdominal, unit: " mm" },
+            { label: "Coxa", value: assessment.skinfolds?.thigh, unit: " mm" },
+            { label: "Panturrilha", value: assessment.skinfolds?.calf, unit: " mm" },
+          ]}
+        />
+      </SectionCard>
+
+      <SectionCard
+        title="Bioimpedância"
+        icon={<Waves className="h-5 w-5 text-muted-foreground" />}
+      >
+        <DataGrid
+          items={[
+            { label: "% Gordura", value: assessment.bioimpedance?.bodyFatPercentage, unit: "%" },
+            { label: "Massa Muscular", value: assessment.bioimpedance?.muscleMass, unit: " kg" },
+            { label: "Massa Magra", value: assessment.bioimpedance?.leanMass, unit: " kg" },
+            { label: "Água Corporal", value: assessment.bioimpedance?.bodyWater, unit: "%" },
+            { label: "Gordura Visceral", value: assessment.bioimpedance?.visceralFat },
+            { label: "Metabolismo Basal", value: assessment.bioimpedance?.basalMetabolicRate, unit: " kcal" },
+            { label: "Idade Metabólica", value: assessment.bioimpedance?.metabolicAge, unit: " anos" },
+          ]}
+        />
+      </SectionCard>
+
       <SectionCard
         title="Observações do relatório"
         icon={<ClipboardList className="h-5 w-5 text-muted-foreground" />}
       >
         <div className="space-y-4">
           <div className="rounded-lg border p-4">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Relatório pronto para evolução futura com protocolo, bioimpedância,
-              circunferências, dobras cutâneas e comparação entre avaliações.
+            <p className="text-xs text-muted-foreground">Observações gerais</p>
+            <p className="mt-2 text-sm leading-relaxed text-foreground">
+              {assessment.notes?.generalNotes || "Nenhuma observação geral registrada."}
+            </p>
+          </div>
+
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Restrições / observações importantes</p>
+            <p className="mt-2 text-sm leading-relaxed text-foreground">
+              {assessment.notes?.restrictions || "Nenhuma restrição registrada."}
             </p>
           </div>
 

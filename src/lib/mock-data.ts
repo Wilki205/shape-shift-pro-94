@@ -14,6 +14,7 @@ export interface Student {
 }
 
 export type AssessmentMethod = "skinfolds" | "bioimpedance" | "both";
+export type AssessmentCategory = "general" | "runner";
 
 export interface Assessment {
   id: string;
@@ -31,6 +32,8 @@ export interface Assessment {
 
   method?: AssessmentMethod;
   protocol?: string;
+  biologicalSex?: "M" | "F" | "";
+  category?: AssessmentCategory;
 
   notes?: {
     generalNotes?: string;
@@ -68,6 +71,19 @@ export interface Assessment {
     visceralFat?: number;
     basalMetabolicRate?: number;
     metabolicAge?: number;
+  };
+
+  runner?: {
+    weeklyDistance?: string;
+    trainingFrequency?: string;
+    targetRace?: string;
+    pace5k?: string;
+    pace10k?: string;
+    restHeartRate?: string;
+    cadence?: string;
+    injuryHistory?: string;
+    currentPain?: string;
+    runningNotes?: string;
   };
 }
 
@@ -168,6 +184,8 @@ export const mockAssessments: Assessment[] = [
     goal: "Emagrecimento",
     method: "both",
     protocol: "pollock-7-bio",
+    biologicalSex: "F",
+    category: "general",
     notes: {
       generalNotes: "Boa evolução. Manter dieta e progressão de treinos.",
       restrictions: "Sem restrições relevantes no momento.",
@@ -218,6 +236,8 @@ export const mockAssessments: Assessment[] = [
     goal: "Emagrecimento",
     method: "skinfolds",
     protocol: "pollock-7",
+    biologicalSex: "F",
+    category: "general",
     notes: {
       generalNotes: "Início do programa com foco em redução de gordura.",
       restrictions: "Leve desconforto em exercícios de impacto.",
@@ -259,6 +279,8 @@ export const mockAssessments: Assessment[] = [
     goal: "Hipertrofia",
     method: "skinfolds",
     protocol: "pollock-3",
+    biologicalSex: "M",
+    category: "general",
     notes: {
       generalNotes: "Aumento de massa significativo.",
       restrictions: "Sem restrições registradas.",
@@ -296,6 +318,8 @@ export const mockAssessments: Assessment[] = [
     goal: "Condicionamento",
     method: "bioimpedance",
     protocol: "bioimpedancia-padrao",
+    biologicalSex: "F",
+    category: "runner",
     notes: {
       generalNotes: "Necessário reforçar consistência alimentar e rotina.",
       restrictions: "Dor lombar ocasional.",
@@ -320,6 +344,19 @@ export const mockAssessments: Assessment[] = [
       visceralFat: 8,
       basalMetabolicRate: 1490,
       metabolicAge: 36,
+    },
+    runner: {
+      weeklyDistance: "32",
+      trainingFrequency: "4",
+      targetRace: "10 km",
+      pace5k: "5:10",
+      pace10k: "5:28",
+      restHeartRate: "58",
+      cadence: "172",
+      injuryHistory: "Histórico leve de canelite no último semestre.",
+      currentPain: "Sem dor atual",
+      runningNotes:
+        "Boa consistência aeróbica. Melhorar estabilidade de quadril e mobilidade de tornozelo.",
     },
   },
 ];

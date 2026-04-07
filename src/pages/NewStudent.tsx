@@ -12,11 +12,26 @@ type NewStudentFormData = {
   email: string;
   phone: string;
   birthDate: string;
-  sex: string;
+  sex: "M" | "F" | "";
   goal: string;
   activityLevel: string;
   notes: string;
 };
+
+function isFilled(value: string) {
+  return String(value || "").trim().length > 0;
+}
+
+function isValidEmail(email: string) {
+  if (!email.trim()) return true;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function hasValidPhone(phone: string) {
+  if (!phone.trim()) return true;
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 10;
+}
 
 function FormField({
   label,
@@ -55,7 +70,7 @@ export default function NewStudent() {
 
   const updateField = <K extends keyof NewStudentFormData>(
     field: K,
-    value: NewStudentFormData[K]
+    value: NewStudentFormData[K],
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -64,12 +79,49 @@ export default function NewStudent() {
   };
 
   const handleSave = () => {
-    if (!formData.fullName.trim()) {
+    if (!isFilled(formData.fullName)) {
       toast.error("Informe o nome completo do aluno.");
       return;
     }
 
-    console.log("New student payload:", formData);
+    if (!isFilled(formData.birthDate)) {
+      toast.error("Informe a data de nascimento.");
+      return;
+    }
+
+    if (!isFilled(formData.sex)) {
+      toast.error("Selecione o sexo biológico para avaliação.");
+      return;
+    }
+
+    if (!isFilled(formData.goal)) {
+      toast.error("Informe o objetivo principal do aluno.");
+      return;
+    }
+
+    if (!isValidEmail(formData.email)) {
+      toast.error("Informe um e-mail válido.");
+      return;
+    }
+
+    if (!hasValidPhone(formData.phone)) {
+      toast.error("Informe um telefone válido com DDD.");
+      return;
+    }
+
+    const payload = {
+      name: formData.fullName.trim(),
+      email: formData.email.trim(),
+      phone: formData.phone.trim(),
+      birthDate: formData.birthDate,
+      gender: formData.sex,
+      goal: formData.goal.trim(),
+      activityLevel: formData.activityLevel.trim(),
+      notes: formData.notes.trim(),
+      status: "active",
+    };
+
+    console.log("New student payload:", payload);
 
     toast.success("Aluno cadastrado com sucesso!");
     navigate("/students");
@@ -118,7 +170,7 @@ export default function NewStudent() {
             />
           </FormField>
 
-          <FormField label="Data de Nascimento">
+          <FormField label="Data de Nascimento" required>
             <Input
               type="date"
               value={formData.birthDate}
@@ -126,12 +178,16 @@ export default function NewStudent() {
             />
           </FormField>
 
-          <FormField label="Sexo">
-            <Input
-              placeholder="Masculino, Feminino ou Outro"
+          <FormField label="Sexo biológico para avaliação" required>
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={formData.sex}
-              onChange={(e) => updateField("sex", e.target.value)}
-            />
+              onChange={(e) => updateField("sex", e.target.value as "M" | "F" | "")}
+            >
+              <option value="">Selecione</option>
+              <option value="M">Masculino</option>
+              <option value="F">Feminino</option>
+            </select>
           </FormField>
         </div>
 
@@ -140,7 +196,7 @@ export default function NewStudent() {
         </h3>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <FormField label="Objetivo principal">
+          <FormField label="Objetivo principal" required>
             <Input
               placeholder="Ex: Emagrecimento, Hipertrofia..."
               value={formData.goal}
@@ -150,7 +206,7 @@ export default function NewStudent() {
 
           <FormField label="Nível de atividade">
             <Input
-              placeholder="Sedentário, Moderado, Intenso"
+              placeholder="Sedentário, Leve, Moderado, Intenso"
               value={formData.activityLevel}
               onChange={(e) => updateField("activityLevel", e.target.value)}
             />

@@ -220,7 +220,7 @@ function LandingFooter() {
             PhysiQ Pro
           </span>
         </div>
-        <p>© 2026 PhysiQ Pro. Todos os direitos reservados.</p>
+        <p>© {new Date().getFullYear()} PhysiQ Pro. Todos os direitos reservados.</p>
       </div>
     </footer>
   );
@@ -235,7 +235,9 @@ export default function Landing() {
 
   const handleLearnMore = () => {
     const section = document.getElementById("features");
-    section?.scrollIntoView({ behavior: "smooth" });
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   return (

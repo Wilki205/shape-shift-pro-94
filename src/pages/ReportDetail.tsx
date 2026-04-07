@@ -12,15 +12,21 @@ import {
   Ruler,
   Scale,
   Waves,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { mockAssessments, mockStudents } from "@/lib/mock-data";
 import { toast } from "sonner";
 
-function formatDate(date: string) {
+function formatDate(date?: string) {
+  if (!date) return "Não informado";
   const [year, month, day] = date.split("-");
   if (!year || !month || !day) return date;
   return `${day}/${month}/${year}`;
+}
+
+function formatValue(value?: string | number | null, fallback = "Não informado") {
+  return value !== undefined && value !== null && value !== "" ? String(value) : fallback;
 }
 
 function SummaryCard({
@@ -100,23 +106,22 @@ export default function ReportDetail() {
   const navigate = useNavigate();
 
   const reportData = useMemo(() => {
-    const orderedAssessments = [...mockAssessments].sort((a, b) =>
-      b.date.localeCompare(a.date),
-    );
+    const assessment = mockAssessments.find((item) => item.id === assessmentId);
+    if (!assessment) return null;
 
-    const assessmentIndex = orderedAssessments.findIndex(
+    const student = mockStudents.find((item) => item.id === assessment.studentId);
+    if (!student) return null;
+
+    const studentAssessments = [...mockAssessments]
+      .filter((item) => item.studentId === assessment.studentId)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    const assessmentIndex = studentAssessments.findIndex(
       (item) => item.id === assessmentId,
     );
 
-    const assessment =
-      assessmentIndex >= 0 ? orderedAssessments[assessmentIndex] : null;
-
     const previousAssessment =
-      assessmentIndex >= 0 ? orderedAssessments[assessmentIndex + 1] : null;
-
-    const student = mockStudents.find((item) => item.id === assessment?.studentId);
-
-    if (!assessment || !student) return null;
+      assessmentIndex >= 0 ? studentAssessments[assessmentIndex + 1] : null;
 
     return { assessment, student, previousAssessment };
   }, [assessmentId]);
@@ -139,10 +144,8 @@ export default function ReportDetail() {
 
   const comparison = previousAssessment
     ? {
-        weightDiff:
-          Number(assessment.weight) - Number(previousAssessment.weight),
-        bodyFatDiff:
-          Number(assessment.bodyFat) - Number(previousAssessment.bodyFat),
+        weightDiff: Number(assessment.weight) - Number(previousAssessment.weight),
+        bodyFatDiff: Number(assessment.bodyFat) - Number(previousAssessment.bodyFat),
         bmiDiff: Number(assessment.bmi) - Number(previousAssessment.bmi),
       }
     : null;
@@ -160,6 +163,16 @@ export default function ReportDetail() {
       : assessment.method === "both"
       ? "Dobras + Bioimpedância"
       : "Não informado";
+
+  const biologicalSexLabel =
+    assessment.biologicalSex === "M"
+      ? "Masculino"
+      : assessment.biologicalSex === "F"
+      ? "Feminino"
+      : "Não informado";
+
+  const categoryLabel =
+    assessment.category === "runner" ? "Corredores" : "Avaliação geral";
 
   return (
     <div className="space-y-6 animate-fade-in print:space-y-4">
@@ -211,7 +224,9 @@ export default function ReportDetail() {
               <h3 className="font-heading text-xl font-bold text-foreground">
                 {student.name}
               </h3>
-              <p className="text-sm text-muted-foreground">{student.goal}</p>
+              <p className="text-sm text-muted-foreground">
+                {student.goal} • {biologicalSexLabel} • {categoryLabel}
+              </p>
             </div>
           </div>
 
@@ -223,12 +238,8 @@ export default function ReportDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-        <SummaryCard
-          title="Aluno"
-          value={student.name}
-          subtitle={student.email}
-        />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <SummaryCard title="Aluno" value={student.name} subtitle={student.email} />
         <SummaryCard
           title="Data da avaliação"
           value={formatDate(assessment.date)}
@@ -236,13 +247,23 @@ export default function ReportDetail() {
         />
         <SummaryCard
           title="Avaliador"
-          value={assessment.assessorName}
+          value={formatValue(assessment.assessorName)}
           subtitle="Responsável pelo atendimento"
         />
         <SummaryCard
           title="Método / Protocolo"
           value={methodLabel}
           subtitle={assessment.protocol || "Não informado"}
+        />
+        <SummaryCard
+          title="Sexo biológico"
+          value={biologicalSexLabel}
+          subtitle="Base para avaliação"
+        />
+        <SummaryCard
+          title="Categoria"
+          value={categoryLabel}
+          subtitle="Tipo de avaliação"
         />
       </div>
 
@@ -259,17 +280,27 @@ export default function ReportDetail() {
 
             <div className="rounded-lg border bg-secondary/20 p-4">
               <p className="text-xs text-muted-foreground">Contato</p>
-              <p className="mt-1 font-medium text-foreground">{student.phone}</p>
+              <p className="mt-1 font-medium text-foreground">{formatValue(student.phone)}</p>
             </div>
 
             <div className="rounded-lg border bg-secondary/20 p-4">
               <p className="text-xs text-muted-foreground">Nascimento</p>
-              <p className="mt-1 font-medium text-foreground">{student.birthDate}</p>
+              <p className="mt-1 font-medium text-foreground">{formatDate(student.birthDate)}</p>
             </div>
 
             <div className="rounded-lg border bg-secondary/20 p-4">
               <p className="text-xs text-muted-foreground">Objetivo</p>
-              <p className="mt-1 font-medium text-foreground">{student.goal}</p>
+              <p className="mt-1 font-medium text-foreground">{formatValue(student.goal)}</p>
+            </div>
+
+            <div className="rounded-lg border bg-secondary/20 p-4">
+              <p className="text-xs text-muted-foreground">Sexo biológico</p>
+              <p className="mt-1 font-medium text-foreground">{biologicalSexLabel}</p>
+            </div>
+
+            <div className="rounded-lg border bg-secondary/20 p-4">
+              <p className="text-xs text-muted-foreground">Categoria</p>
+              <p className="mt-1 font-medium text-foreground">{categoryLabel}</p>
             </div>
           </div>
         </SectionCard>
@@ -350,7 +381,7 @@ export default function ReportDetail() {
           ) : (
             <div className="rounded-lg border p-4">
               <p className="text-sm text-muted-foreground">
-                Ainda não há avaliação anterior para comparar.
+                Ainda não há avaliação anterior do mesmo aluno para comparar.
               </p>
             </div>
           )}
@@ -377,39 +408,79 @@ export default function ReportDetail() {
         />
       </SectionCard>
 
-      <SectionCard
-        title="Dobras Cutâneas"
-        icon={<Scale className="h-5 w-5 text-muted-foreground" />}
-      >
-        <DataGrid
-          items={[
-            { label: "Tríceps", value: assessment.skinfolds?.triceps, unit: " mm" },
-            { label: "Bíceps", value: assessment.skinfolds?.biceps, unit: " mm" },
-            { label: "Subescapular", value: assessment.skinfolds?.subscapular, unit: " mm" },
-            { label: "Suprailíaca", value: assessment.skinfolds?.suprailiac, unit: " mm" },
-            { label: "Abdominal", value: assessment.skinfolds?.abdominal, unit: " mm" },
-            { label: "Coxa", value: assessment.skinfolds?.thigh, unit: " mm" },
-            { label: "Panturrilha", value: assessment.skinfolds?.calf, unit: " mm" },
-          ]}
-        />
-      </SectionCard>
+      {assessment.skinfolds && (
+        <SectionCard
+          title="Dobras Cutâneas"
+          icon={<Scale className="h-5 w-5 text-muted-foreground" />}
+        >
+          <DataGrid
+            items={[
+              { label: "Tríceps", value: assessment.skinfolds?.triceps, unit: " mm" },
+              { label: "Bíceps", value: assessment.skinfolds?.biceps, unit: " mm" },
+              { label: "Subescapular", value: assessment.skinfolds?.subscapular, unit: " mm" },
+              { label: "Suprailíaca", value: assessment.skinfolds?.suprailiac, unit: " mm" },
+              { label: "Abdominal", value: assessment.skinfolds?.abdominal, unit: " mm" },
+              { label: "Coxa", value: assessment.skinfolds?.thigh, unit: " mm" },
+              { label: "Panturrilha", value: assessment.skinfolds?.calf, unit: " mm" },
+            ]}
+          />
+        </SectionCard>
+      )}
 
-      <SectionCard
-        title="Bioimpedância"
-        icon={<Waves className="h-5 w-5 text-muted-foreground" />}
-      >
-        <DataGrid
-          items={[
-            { label: "% Gordura", value: assessment.bioimpedance?.bodyFatPercentage, unit: "%" },
-            { label: "Massa Muscular", value: assessment.bioimpedance?.muscleMass, unit: " kg" },
-            { label: "Massa Magra", value: assessment.bioimpedance?.leanMass, unit: " kg" },
-            { label: "Água Corporal", value: assessment.bioimpedance?.bodyWater, unit: "%" },
-            { label: "Gordura Visceral", value: assessment.bioimpedance?.visceralFat },
-            { label: "Metabolismo Basal", value: assessment.bioimpedance?.basalMetabolicRate, unit: " kcal" },
-            { label: "Idade Metabólica", value: assessment.bioimpedance?.metabolicAge, unit: " anos" },
-          ]}
-        />
-      </SectionCard>
+      {assessment.bioimpedance && (
+        <SectionCard
+          title="Bioimpedância"
+          icon={<Waves className="h-5 w-5 text-muted-foreground" />}
+        >
+          <DataGrid
+            items={[
+              { label: "% Gordura", value: assessment.bioimpedance?.bodyFatPercentage, unit: "%" },
+              { label: "Massa Muscular", value: assessment.bioimpedance?.muscleMass, unit: " kg" },
+              { label: "Massa Magra", value: assessment.bioimpedance?.leanMass, unit: " kg" },
+              { label: "Água Corporal", value: assessment.bioimpedance?.bodyWater, unit: "%" },
+              { label: "Gordura Visceral", value: assessment.bioimpedance?.visceralFat },
+              { label: "Metabolismo Basal", value: assessment.bioimpedance?.basalMetabolicRate, unit: " kcal" },
+              { label: "Idade Metabólica", value: assessment.bioimpedance?.metabolicAge, unit: " anos" },
+            ]}
+          />
+        </SectionCard>
+      )}
+
+      {assessment.category === "runner" && (
+        <SectionCard
+          title="Dados específicos para corredores"
+          icon={<HeartPulse className="h-5 w-5 text-muted-foreground" />}
+        >
+          <DataGrid
+            items={[
+              { label: "Distância semanal", value: assessment.runner?.weeklyDistance, unit: " km" },
+              { label: "Frequência semanal", value: assessment.runner?.trainingFrequency, unit: "x" },
+              { label: "Prova-alvo", value: assessment.runner?.targetRace },
+              { label: "Pace 5 km", value: assessment.runner?.pace5k, unit: " /km" },
+              { label: "Pace 10 km", value: assessment.runner?.pace10k, unit: " /km" },
+              { label: "FC de repouso", value: assessment.runner?.restHeartRate, unit: " bpm" },
+              { label: "Cadência", value: assessment.runner?.cadence, unit: " spm" },
+              { label: "Dor atual", value: assessment.runner?.currentPain },
+            ]}
+          />
+
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-lg border p-4">
+              <p className="text-xs text-muted-foreground">Histórico de lesões</p>
+              <p className="mt-2 text-sm leading-relaxed text-foreground">
+                {assessment.runner?.injuryHistory || "Nenhum histórico registrado."}
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <p className="text-xs text-muted-foreground">Observações da corrida</p>
+              <p className="mt-2 text-sm leading-relaxed text-foreground">
+                {assessment.runner?.runningNotes || "Nenhuma observação registrada."}
+              </p>
+            </div>
+          </div>
+        </SectionCard>
+      )}
 
       <SectionCard
         title="Observações do relatório"

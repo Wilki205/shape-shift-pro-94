@@ -12,9 +12,9 @@ import {
   Target,
   ClipboardList,
   FileBarChart2,
-  TrendingUp,
   Activity,
   Eye,
+  HeartPulse,
 } from "lucide-react";
 import {
   LineChart,
@@ -26,16 +26,32 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
-function formatShortDate(date: string) {
+function formatShortDate(date?: string) {
+  if (!date) return "—";
   const [year, month, day] = date.split("-");
   if (!year || !month || !day) return date;
   return `${day}/${month}`;
 }
 
-function formatDisplayDate(date: string) {
+function formatDisplayDate(date?: string) {
+  if (!date) return "Não informado";
   const [year, month, day] = date.split("-");
   if (!year || !month || !day) return date;
   return `${day}/${month}/${year}`;
+}
+
+function formatValue(value?: string | number | null, fallback = "Não informado") {
+  return value !== undefined && value !== null && value !== "" ? String(value) : fallback;
+}
+
+function getSexLabel(sex?: string) {
+  if (sex === "M") return "Masculino";
+  if (sex === "F") return "Feminino";
+  return "Não informado";
+}
+
+function getCategoryLabel(category?: string) {
+  return category === "runner" ? "Corredores" : "Geral";
 }
 
 function StudentNotFound({ onBack }: { onBack: () => void }) {
@@ -132,9 +148,11 @@ export default function StudentDetail() {
     toast.info(`Edição de ${student.name} será conectada em seguida.`);
   };
 
+  const latestSexLabel = getSexLabel(latestAssessment?.biologicalSex || student.gender);
+  const latestCategoryLabel = getCategoryLabel(latestAssessment?.category);
+
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/students")}>
@@ -157,6 +175,12 @@ export default function StudentDetail() {
               >
                 {student.status === "active" ? "Ativo" : "Inativo"}
               </Badge>
+
+              {latestAssessment?.category === "runner" && (
+                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+                  Corredor
+                </Badge>
+              )}
             </div>
 
             <p className="mt-1 text-sm text-muted-foreground">
@@ -191,17 +215,18 @@ export default function StudentDetail() {
         </div>
       </div>
 
-      {/* Top summary cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <InfoCard title="Peso atual">
           <p className="font-heading text-3xl font-bold text-foreground">
             {latestAssessment ? `${latestAssessment.weight}kg` : "—"}
           </p>
-          {comparison && (
+          {comparison ? (
             <p className={`text-xs font-medium ${comparison.weightDiff <= 0 ? "text-success" : "text-warning"}`}>
               {comparison.weightDiff > 0 ? "+" : ""}
               {comparison.weightDiff.toFixed(1)}kg vs anterior
             </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Aguardando comparativo</p>
           )}
         </InfoCard>
 
@@ -209,11 +234,13 @@ export default function StudentDetail() {
           <p className="font-heading text-3xl font-bold text-foreground">
             {latestAssessment ? `${latestAssessment.bodyFat}%` : "—"}
           </p>
-          {comparison && (
+          {comparison ? (
             <p className={`text-xs font-medium ${comparison.fatDiff <= 0 ? "text-success" : "text-warning"}`}>
               {comparison.fatDiff > 0 ? "+" : ""}
               {comparison.fatDiff.toFixed(1)}% vs anterior
             </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Aguardando comparativo</p>
           )}
         </InfoCard>
 
@@ -221,11 +248,13 @@ export default function StudentDetail() {
           <p className="font-heading text-3xl font-bold text-foreground">
             {latestAssessment ? latestAssessment.bmi : "—"}
           </p>
-          {comparison && (
+          {comparison ? (
             <p className="text-xs font-medium text-muted-foreground">
               {comparison.bmiDiff > 0 ? "+" : ""}
               {comparison.bmiDiff.toFixed(2)} vs anterior
             </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Aguardando comparativo</p>
           )}
         </InfoCard>
 
@@ -241,25 +270,24 @@ export default function StudentDetail() {
         </InfoCard>
       </div>
 
-      {/* Info cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <InfoCard title="Dados Pessoais">
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Mail className="h-4 w-4" />
-              {student.email || "Não informado"}
+              {formatValue(student.email)}
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Phone className="h-4 w-4" />
-              {student.phone || "Não informado"}
+              {formatValue(student.phone)}
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              {student.birthDate || "Não informado"}
+              {formatDisplayDate(student.birthDate)}
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Target className="h-4 w-4" />
-              {student.goal || "Não informado"}
+              {formatValue(student.goal)}
             </div>
           </div>
         </InfoCard>
@@ -277,6 +305,20 @@ export default function StudentDetail() {
               <p className="text-xs text-muted-foreground">Última</p>
               <p className="font-heading text-xl font-bold text-foreground">
                 {latestAssessment ? formatShortDate(latestAssessment.date) : "—"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground">Sexo</p>
+              <p className="font-heading text-base font-bold text-foreground">
+                {latestSexLabel}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground">Categoria</p>
+              <p className="font-heading text-base font-bold text-foreground">
+                {latestCategoryLabel}
               </p>
             </div>
 
@@ -335,7 +377,6 @@ export default function StudentDetail() {
         </InfoCard>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <InfoCard title="Evolução de Peso">
           {weightData.length > 1 ? (
@@ -404,7 +445,6 @@ export default function StudentDetail() {
         </InfoCard>
       </div>
 
-      {/* Assessments history */}
       <div className="rounded-xl border bg-card shadow-card">
         <div className="flex items-center justify-between p-5 pb-3">
           <h3 className="font-heading text-base font-semibold text-foreground">
@@ -442,12 +482,12 @@ export default function StudentDetail() {
                       Avaliação — {formatDisplayDate(assessment.date)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Avaliador: {assessment.assessorName}
+                      Avaliador: {formatValue(assessment.assessorName)}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-4 text-xs text-muted-foreground sm:gap-6">
+                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground sm:gap-6">
                   <div>
                     <span className="font-medium text-foreground">
                       {assessment.weight}kg
@@ -466,10 +506,20 @@ export default function StudentDetail() {
                     </span>{" "}
                     IMC
                   </div>
+                  <div>
+                    <span className="font-medium text-foreground">
+                      {getCategoryLabel(assessment.category)}
+                    </span>{" "}
+                    categoria
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-primary">
-                  <Activity className="h-4 w-4" />
+                  {assessment.category === "runner" ? (
+                    <HeartPulse className="h-4 w-4" />
+                  ) : (
+                    <Activity className="h-4 w-4" />
+                  )}
                   <span className="text-xs font-medium">Abrir relatório</span>
                 </div>
               </button>

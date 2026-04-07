@@ -45,7 +45,10 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isActive = (path: string) => location.pathname.startsWith(path);
+  const isActive = (path: string) => {
+    if (path === "/dashboard") return location.pathname === "/dashboard";
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
 
   const handleLogout = () => {
     toast.success("Sessão encerrada com sucesso.");
@@ -151,7 +154,7 @@ export function AppSidebar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="transition-colors text-sidebar-foreground/40 hover:text-sidebar-foreground"
+              className="text-sidebar-foreground/40 transition-colors hover:text-sidebar-foreground"
               aria-label="Sair"
               title="Sair"
             >

@@ -1,10 +1,81 @@
-import { ShieldCheck, BellRing, Palette, FileLock2, Building2, Save } from "lucide-react";
+import {
+  ShieldCheck,
+  BellRing,
+  Palette,
+  FileLock2,
+  Building2,
+  Save,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+
+function SectionCard({
+  icon,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-5 rounded-xl border bg-card p-6 shadow-card">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h3 className="font-heading text-base font-semibold text-foreground">
+          {title}
+        </h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  defaultValue,
+  type = "text",
+}: {
+  label: string;
+  defaultValue: string;
+  type?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Input type={type} defaultValue={defaultValue} />
+    </div>
+  );
+}
+
+function ToggleItem({
+  title,
+  description,
+  defaultChecked = false,
+}: {
+  title: string;
+  description: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border p-4">
+      <div>
+        <p className="text-sm font-medium text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Switch defaultChecked={defaultChecked} />
+    </div>
+  );
+}
 
 export default function Settings() {
+  const handleSave = () => {
+    toast.success("Configurações salvas com sucesso.");
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -17,136 +88,101 @@ export default function Settings() {
           </p>
         </div>
 
-        <Button size="sm">
+        <Button size="sm" onClick={handleSave}>
           <Save className="mr-1.5 h-4 w-4" />
           Salvar alterações
         </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-xl border bg-card p-6 shadow-card space-y-5">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-heading text-base font-semibold text-foreground">
-              Dados da organização
-            </h3>
-          </div>
-
+        <SectionCard
+          icon={<Building2 className="h-5 w-5 text-muted-foreground" />}
+          title="Dados da organização"
+        >
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Nome da clínica / consultoria</Label>
-              <Input defaultValue="PhysiQ Pro Studio" />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>E-mail principal</Label>
-              <Input defaultValue="contato@physiqpro.com" />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Telefone</Label>
-              <Input defaultValue="(81) 99999-0000" />
-            </div>
+            <Field
+              label="Nome da clínica / consultoria"
+              defaultValue="PhysiQ Pro Studio"
+            />
+            <Field
+              label="E-mail principal"
+              defaultValue="contato@physiqpro.com"
+              type="email"
+            />
+            <Field
+              label="Telefone"
+              defaultValue="(81) 99999-0000"
+            />
           </div>
-        </div>
+        </SectionCard>
 
-        <div className="rounded-xl border bg-card p-6 shadow-card space-y-5">
-          <div className="flex items-center gap-2">
-            <Palette className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-heading text-base font-semibold text-foreground">
-              Preferências visuais
-            </h3>
-          </div>
-
+        <SectionCard
+          icon={<Palette className="h-5 w-5 text-muted-foreground" />}
+          title="Preferências visuais"
+        >
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Nome exibido no sistema</Label>
-              <Input defaultValue="PhysiQ Pro" />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Cor principal</Label>
-              <Input defaultValue="Azul escuro" />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Idioma</Label>
-              <Input defaultValue="Português (Brasil)" />
-            </div>
+            <Field
+              label="Nome exibido no sistema"
+              defaultValue="PhysiQ Pro"
+            />
+            <Field
+              label="Cor principal"
+              defaultValue="Azul escuro"
+            />
+            <Field
+              label="Idioma"
+              defaultValue="Português (Brasil)"
+            />
           </div>
-        </div>
+        </SectionCard>
 
-        <div className="rounded-xl border bg-card p-6 shadow-card space-y-5">
-          <div className="flex items-center gap-2">
-            <BellRing className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-heading text-base font-semibold text-foreground">
-              Notificações
-            </h3>
-          </div>
-
+        <SectionCard
+          icon={<BellRing className="h-5 w-5 text-muted-foreground" />}
+          title="Notificações"
+        >
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">Lembretes de reavaliação</p>
-                <p className="text-xs text-muted-foreground">
-                  Receba avisos sobre alunos com nova avaliação pendente.
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
+            <ToggleItem
+              title="Lembretes de reavaliação"
+              description="Receba avisos sobre alunos com nova avaliação pendente."
+              defaultChecked
+            />
 
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">Notificações por e-mail</p>
-                <p className="text-xs text-muted-foreground">
-                  Enviar alertas e resumos para o e-mail principal.
-                </p>
-              </div>
-              <Switch />
-            </div>
+            <ToggleItem
+              title="Notificações por e-mail"
+              description="Enviar alertas e resumos para o e-mail principal."
+            />
           </div>
-        </div>
+        </SectionCard>
 
-        <div className="rounded-xl border bg-card p-6 shadow-card space-y-5">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-heading text-base font-semibold text-foreground">
-              Privacidade e segurança
-            </h3>
-          </div>
-
+        <SectionCard
+          icon={<ShieldCheck className="h-5 w-5 text-muted-foreground" />}
+          title="Privacidade e segurança"
+        >
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">Sessão protegida</p>
-                <p className="text-xs text-muted-foreground">
-                  Exigir nova autenticação em ações sensíveis.
-                </p>
-              </div>
-              <Switch defaultChecked />
-            </div>
+            <ToggleItem
+              title="Sessão protegida"
+              description="Exigir nova autenticação em ações sensíveis."
+              defaultChecked
+            />
 
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">Ocultar dados sensíveis</p>
-                <p className="text-xs text-muted-foreground">
-                  Reduzir exposição de informações pessoais em listagens.
-                </p>
-              </div>
-              <Switch />
-            </div>
+            <ToggleItem
+              title="Ocultar dados sensíveis"
+              description="Reduzir exposição de informações pessoais em listagens."
+            />
 
             <div className="rounded-lg border bg-secondary/20 p-4">
               <div className="mb-2 flex items-center gap-2">
                 <FileLock2 className="h-4 w-4 text-muted-foreground" />
-                <p className="text-sm font-medium text-foreground">Status de proteção</p>
+                <p className="text-sm font-medium text-foreground">
+                  Status de proteção
+                </p>
               </div>
               <p className="text-sm text-muted-foreground">
                 Configurações básicas de segurança estão ativas neste ambiente.
               </p>
             </div>
           </div>
-        </div>
+        </SectionCard>
       </div>
     </div>
   );

@@ -9,19 +9,44 @@ import {
   Search,
   Filter,
   Eye,
+  Activity,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { mockStudents, mockAssessments } from "@/lib/mock-data";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 type ReportFilter = "all" | "recent" | "older";
 
-function formatDate(date: string) {
+function formatDate(date?: string) {
+  if (!date) return "Não informado";
   const [year, month, day] = date.split("-");
   if (!year || !month || !day) return date;
   return `${day}/${month}/${year}`;
+}
+
+function formatValue(value?: string | number | null, fallback = "Não informado") {
+  return value !== undefined && value !== null && value !== "" ? String(value) : fallback;
+}
+
+function getMethodLabel(method?: string) {
+  if (method === "skinfolds") return "Dobras";
+  if (method === "bioimpedance") return "Bioimpedância";
+  if (method === "both") return "Dobras + Bio";
+  return "Padrão";
+}
+
+function getSexLabel(sex?: string) {
+  if (sex === "M") return "Masculino";
+  if (sex === "F") return "Feminino";
+  return "Não informado";
+}
+
+function getCategoryLabel(category?: string) {
+  return category === "runner" ? "Corredores" : "Geral";
 }
 
 export default function Reports() {
@@ -31,11 +56,12 @@ export default function Reports() {
 
   const totalStudents = mockStudents.length;
   const totalAssessments = mockAssessments.length;
-  const latestAssessment = [...mockAssessments].sort((a, b) =>
-    b.date.localeCompare(a.date),
-  )[0];
 
-  const recentReports = useMemo(() => {
+  const latestAssessment = useMemo(() => {
+    return [...mockAssessments].sort((a, b) => b.date.localeCompare(a.date))[0];
+  }, []);
+
+  const reports = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
     return [...mockAssessments]
@@ -50,13 +76,22 @@ export default function Reports() {
           date: assessment.date,
           weight: assessment.weight,
           bodyFat: assessment.bodyFat,
+          bmi: assessment.bmi,
+          method: assessment.method,
+          category: assessment.category,
+          biologicalSex: assessment.biologicalSex,
+          protocol: assessment.protocol,
           studentId: assessment.studentId,
         };
       })
       .filter((report) => {
         const matchesSearch =
           report.studentName.toLowerCase().includes(normalizedSearch) ||
-          report.assessorName.toLowerCase().includes(normalizedSearch);
+          report.assessorName.toLowerCase().includes(normalizedSearch) ||
+          getMethodLabel(report.method).toLowerCase().includes(normalizedSearch) ||
+          getCategoryLabel(report.category).toLowerCase().includes(normalizedSearch) ||
+          getSexLabel(report.biologicalSex).toLowerCase().includes(normalizedSearch) ||
+          (report.protocol || "").toLowerCase().includes(normalizedSearch);
 
         if (filter === "all") return matchesSearch;
         if (filter === "recent") return matchesSearch && report.date >= "2026-01-01";
@@ -90,7 +125,7 @@ export default function Reports() {
 
         <Button size="sm" onClick={handleExportAll}>
           <Download className="mr-1.5 h-4 w-4" />
-          Exportar relatório
+          Exportar relatórios
         </Button>
       </div>
 
@@ -121,7 +156,7 @@ export default function Reports() {
           </div>
           <p className="text-sm text-muted-foreground">Última avaliação</p>
           <p className="mt-1 font-heading text-xl font-bold text-foreground">
-            {latestAssessment ? formatDate(latestAssessment.date) : "—"}
+            {latestAssessment ? formatDate(latestAssessment.date) : "Não informado"}
           </p>
         </div>
 
@@ -136,18 +171,18 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por aluno ou avaliador..."
+            placeholder="Buscar por aluno, avaliador, método, categoria..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
 
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {(["all", "recent", "older"] as const).map((currentFilter) => (
             <Button
               key={currentFilter}
@@ -172,14 +207,14 @@ export default function Reports() {
               Relatórios recentes
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Últimas avaliações disponíveis para exportação e consulta.
+              {reports.length} de {totalAssessments} relatórios exibidos
             </p>
           </div>
         </div>
 
-        {recentReports.length > 0 ? (
+        {reports.length > 0 ? (
           <div className="divide-y">
-            {recentReports.map((report) => (
+            {reports.map((report) => (
               <div
                 key={report.id}
                 className="flex flex-col gap-4 px-5 py-4 transition-colors hover:bg-secondary/30 sm:flex-row sm:items-center"
@@ -194,7 +229,7 @@ export default function Reports() {
                       Relatório de {report.studentName}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Avaliador: {report.assessorName}
+                      Avaliador: {formatValue(report.assessorName)}
                     </p>
                   </div>
                 </div>
@@ -208,16 +243,34 @@ export default function Reports() {
                   </div>
                   <div>
                     <span className="font-medium text-foreground">
-                      {report.weight}kg
+                      {formatValue(report.weight)}kg
                     </span>{" "}
                     peso
                   </div>
                   <div>
                     <span className="font-medium text-foreground">
-                      {report.bodyFat}%
+                      {formatValue(report.bodyFat)}%
                     </span>{" "}
                     gordura
                   </div>
+                  <div>
+                    <span className="font-medium text-foreground">
+                      {formatValue(report.bmi)}
+                    </span>{" "}
+                    IMC
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary">{getMethodLabel(report.method)}</Badge>
+                  <Badge variant="outline">{getSexLabel(report.biologicalSex)}</Badge>
+                  <Badge variant="outline">{getCategoryLabel(report.category)}</Badge>
+
+                  {report.category === "runner" ? (
+                    <HeartPulse className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                  )}
                 </div>
 
                 <div className="flex gap-2">

@@ -13,7 +13,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { dashboardStats, recentActivity, monthlyData, mockStudents, mockAssessments } from "@/lib/mock-data";
+import {
+  dashboardStats,
+  recentActivity,
+  monthlyData,
+  mockStudents,
+  mockAssessments,
+} from "@/lib/mock-data";
 import { StatsCard } from "@/components/StatsCard";
 import {
   BarChart,
@@ -29,6 +35,13 @@ import {
 import { toast } from "sonner";
 
 type DashboardPeriod = "7d" | "30d" | "90d";
+
+function formatDate(date?: string) {
+  if (!date) return "Não informado";
+  const [year, month, day] = date.split("-");
+  if (!year || !month || !day) return date;
+  return `${day}/${month}/${year}`;
+}
 
 function getActivityDotColor(type: string) {
   switch (type) {
@@ -88,29 +101,34 @@ export default function Dashboard() {
   }, []);
 
   const summary = useMemo(() => {
+    const safeStudents = dashboardStats.totalStudents || totalStudents;
+    const safeAssessments = dashboardStats.assessmentsThisMonth || totalAssessments;
+    const safePending = dashboardStats.pendingReassessments || 0;
+    const safeEvolution = dashboardStats.averageEvolution || 0;
+
     if (period === "7d") {
       return {
-        totalStudents,
-        assessmentsThisPeriod: Math.max(3, Math.floor(totalAssessments * 0.2)),
-        pendingReassessments: Math.max(2, Math.floor(dashboardStats.pendingReassessments * 0.5)),
+        totalStudents: safeStudents,
+        assessmentsThisPeriod: Math.min(totalAssessments, Math.max(1, Math.floor(safeAssessments * 0.35))),
+        pendingReassessments: Math.max(1, Math.floor(safePending * 0.5)),
         averageEvolution: 4.8,
       };
     }
 
     if (period === "90d") {
       return {
-        totalStudents,
-        assessmentsThisPeriod: Math.max(8, Math.floor(totalAssessments * 0.9)),
-        pendingReassessments: dashboardStats.pendingReassessments + 3,
+        totalStudents: safeStudents,
+        assessmentsThisPeriod: Math.max(safeAssessments, Math.min(totalAssessments, safeAssessments + 6)),
+        pendingReassessments: safePending + 3,
         averageEvolution: 14.2,
       };
     }
 
     return {
-      totalStudents: dashboardStats.totalStudents || totalStudents,
-      assessmentsThisPeriod: dashboardStats.assessmentsThisMonth || totalAssessments,
-      pendingReassessments: dashboardStats.pendingReassessments,
-      averageEvolution: dashboardStats.averageEvolution,
+      totalStudents: safeStudents,
+      assessmentsThisPeriod: safeAssessments,
+      pendingReassessments: safePending,
+      averageEvolution: safeEvolution,
     };
   }, [period, totalStudents, totalAssessments]);
 
@@ -123,11 +141,14 @@ export default function Dashboard() {
   };
 
   const periodLabel =
-    period === "7d" ? "últimos 7 dias" : period === "90d" ? "últimos 90 dias" : "últimos 30 dias";
+    period === "7d"
+      ? "últimos 7 dias"
+      : period === "90d"
+      ? "últimos 90 dias"
+      : "últimos 30 dias";
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <h2 className="font-heading text-2xl font-bold text-foreground">
@@ -166,7 +187,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Quick actions */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <button
           type="button"
@@ -225,7 +245,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total de Alunos"
@@ -256,7 +275,6 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Charts + ranking */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -371,7 +389,6 @@ export default function Dashboard() {
         </ChartCard>
       </div>
 
-      {/* Activity + summary */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <div className="rounded-xl border bg-card shadow-card">
@@ -406,7 +423,7 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground">{item.action}</p>
                   </div>
                   <span className="whitespace-nowrap text-xs text-muted-foreground">
-                    {item.date}
+                    {formatDate(item.date)}
                   </span>
                 </div>
               ))}
@@ -420,7 +437,7 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground">Última avaliação</p>
               <p className="mt-1 text-sm font-medium text-foreground">
                 {latestAssessment
-                  ? `${latestAssessment.assessorName} • ${latestAssessment.date}`
+                  ? `${latestAssessment.assessorName} • ${formatDate(latestAssessment.date)}`
                   : "Nenhuma avaliação encontrada"}
               </p>
             </div>

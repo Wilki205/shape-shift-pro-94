@@ -17,6 +17,7 @@ const steps = [
 ] as const;
 
 type AssessmentMethod = "skinfolds" | "bioimpedance" | "both";
+type AssessmentCategory = "general" | "runner";
 
 type AssessmentFormData = {
   general: {
@@ -26,6 +27,8 @@ type AssessmentFormData = {
     activityLevel: string;
     assessmentMethod: AssessmentMethod;
     protocol: string;
+    biologicalSex: "M" | "F" | "";
+    category: AssessmentCategory;
   };
   bodyComposition: {
     weight: string;
@@ -64,6 +67,18 @@ type AssessmentFormData = {
     visceralFat: string;
     basalMetabolicRate: string;
     metabolicAge: string;
+  };
+  runner: {
+    weeklyDistance: string;
+    trainingFrequency: string;
+    targetRace: string;
+    pace5k: string;
+    pace10k: string;
+    restHeartRate: string;
+    cadence: string;
+    injuryHistory: string;
+    currentPain: string;
+    runningNotes: string;
   };
   notes: {
     generalNotes: string;
@@ -139,6 +154,10 @@ const emptySkinfolds: AssessmentFormData["skinfolds"] = {
   calf: "",
 };
 
+function isFilled(value: string) {
+  return String(value || "").trim().length > 0;
+}
+
 function AssessmentField({
   label,
   unit,
@@ -202,6 +221,8 @@ export default function NewAssessment() {
       activityLevel: "",
       assessmentMethod: "both",
       protocol: "personalizado",
+      biologicalSex: student?.gender || "",
+      category: "general",
     },
     bodyComposition: {
       weight: "",
@@ -240,6 +261,18 @@ export default function NewAssessment() {
       visceralFat: "",
       basalMetabolicRate: "",
       metabolicAge: "",
+    },
+    runner: {
+      weeklyDistance: "",
+      trainingFrequency: "",
+      targetRace: "",
+      pace5k: "",
+      pace10k: "",
+      restHeartRate: "",
+      cadence: "",
+      injuryHistory: "",
+      currentPain: "",
+      runningNotes: "",
     },
     notes: {
       generalNotes: "",
@@ -318,6 +351,19 @@ export default function NewAssessment() {
     }));
   };
 
+  const updateRunnerField = <K extends keyof AssessmentFormData["runner"]>(
+    field: K,
+    value: AssessmentFormData["runner"][K],
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      runner: {
+        ...prev.runner,
+        [field]: value,
+      },
+    }));
+  };
+
   const updateNotesField = <K extends keyof AssessmentFormData["notes"]>(
     field: K,
     value: AssessmentFormData["notes"][K],
@@ -353,13 +399,64 @@ export default function NewAssessment() {
       (formData.general.protocol || "personalizado") as keyof typeof skinfoldFieldConfig
     ] || skinfoldFieldConfig.personalizado;
 
+  const validateStep = (currentStep: number) => {
+    if (currentStep === 0) {
+      if (
+        !isFilled(formData.general.date) ||
+        !isFilled(formData.general.evaluator) ||
+        !isFilled(formData.general.goal) ||
+        !isFilled(formData.general.biologicalSex) ||
+        !isFilled(formData.general.category) ||
+        !isFilled(formData.general.assessmentMethod) ||
+        !isFilled(formData.general.protocol)
+      ) {
+        toast.error("Preencha os campos obrigatórios de Dados Gerais.");
+        return false;
+      }
+    }
+
+    if (currentStep === 1) {
+      if (
+        !isFilled(formData.bodyComposition.weight) ||
+        !isFilled(formData.bodyComposition.height)
+      ) {
+        toast.error("Informe pelo menos peso e altura.");
+        return false;
+      }
+    }
+
+    if (currentStep === 4 && formData.general.category === "runner") {
+      if (
+        !isFilled(formData.runner.weeklyDistance) ||
+        !isFilled(formData.runner.trainingFrequency) ||
+        !isFilled(formData.runner.targetRace)
+      ) {
+        toast.error("Preencha os campos principais da avaliação para corredores.");
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   if (!student) {
     return <StudentNotFound onBack={() => navigate("/students")} />;
   }
 
   const handleSave = () => {
+    if (!validateStep(0) || !validateStep(1)) return;
+
+    if (formData.general.category === "runner" && !validateStep(4)) return;
+
     const payload = {
       ...formData,
+      general: {
+        ...formData.general,
+        protocol:
+          formData.general.category === "runner"
+            ? formData.general.protocol || "runner-basic"
+            : formData.general.protocol,
+      },
       bodyComposition: {
         ...formData.bodyComposition,
         bmi: calculatedBmi,
@@ -376,6 +473,7 @@ export default function NewAssessment() {
   };
 
   const goToNextStep = () => {
+    if (!validateStep(step)) return;
     setStep((current) => current + 1);
   };
 
@@ -460,6 +558,52 @@ export default function NewAssessment() {
               </div>
 
               <div className="space-y-1.5">
+                <Label>Sexo biológico para avaliação</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={formData.general.biologicalSex}
+                  onChange={(e) =>
+                    updateGeneralField("biologicalSex", e.target.value as "M" | "F" | "")
+                  }
+                >
+                  <option value="">Selecione</option>
+                  <option value="M">Masculino</option>
+                  <option value="F">Feminino</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Categoria da avaliação</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={formData.general.category}
+                  onChange={(e) => {
+                    const newCategory = e.target.value as AssessmentCategory;
+
+                    setFormData((prev) => ({
+                      ...prev,
+                      general: {
+                        ...prev.general,
+                        category: newCategory,
+                        protocol:
+                          newCategory === "runner"
+                            ? "runner-basic"
+                            : prev.general.assessmentMethod === "skinfolds"
+                            ? "pollock-3"
+                            : prev.general.assessmentMethod === "bioimpedance"
+                            ? "bioimpedancia-padrao"
+                            : "personalizado",
+                      },
+                      skinfolds: emptySkinfolds,
+                    }));
+                  }}
+                >
+                  <option value="general">Avaliação geral</option>
+                  <option value="runner">Corredores</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
                 <Label>Método de Avaliação</Label>
                 <select
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -473,7 +617,9 @@ export default function NewAssessment() {
                         ...prev.general,
                         assessmentMethod: newMethod,
                         protocol:
-                          newMethod === "skinfolds"
+                          prev.general.category === "runner"
+                            ? "runner-basic"
+                            : newMethod === "skinfolds"
                             ? "pollock-3"
                             : newMethod === "bioimpedance"
                             ? "bioimpedancia-padrao"
@@ -505,24 +651,27 @@ export default function NewAssessment() {
                     }))
                   }
                 >
-                  {method === "skinfolds" && (
+                  {formData.general.category === "runner" ? (
+                    <>
+                      <option value="runner-basic">Corredor — avaliação básica</option>
+                      <option value="runner-performance">Corredor — performance</option>
+                      <option value="runner-bodycomp">Corredor — composição corporal</option>
+                      <option value="runner-complete">Corredor — completa</option>
+                    </>
+                  ) : method === "skinfolds" ? (
                     <>
                       <option value="pollock-3">Pollock 3 dobras</option>
                       <option value="pollock-7">Pollock 7 dobras</option>
                       <option value="faulkner">Faulkner</option>
                       <option value="jackson-pollock">Jackson & Pollock</option>
                     </>
-                  )}
-
-                  {method === "bioimpedance" && (
+                  ) : method === "bioimpedance" ? (
                     <>
                       <option value="bioimpedancia-padrao">Bioimpedância padrão</option>
                       <option value="tanita">Bioimpedância Tanita</option>
                       <option value="inbody">Bioimpedância InBody</option>
                     </>
-                  )}
-
-                  {method === "both" && (
+                  ) : (
                     <>
                       <option value="personalizado">Protocolo combinado personalizado</option>
                       <option value="pollock-7-bio">Pollock 7 + Bioimpedância</option>
@@ -655,6 +804,98 @@ export default function NewAssessment() {
             <h3 className="font-heading text-base font-semibold text-foreground">
               Observações
             </h3>
+
+            {formData.general.category === "runner" && (
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-foreground">
+                  Dados específicos para corredores
+                </h4>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <AssessmentField
+                    label="Distância semanal"
+                    unit="km"
+                    value={formData.runner.weeklyDistance}
+                    onChange={(value) => updateRunnerField("weeklyDistance", value)}
+                  />
+
+                  <AssessmentField
+                    label="Frequência semanal"
+                    unit="x"
+                    value={formData.runner.trainingFrequency}
+                    onChange={(value) => updateRunnerField("trainingFrequency", value)}
+                  />
+
+                  <AssessmentField
+                    label="FC de repouso"
+                    unit="bpm"
+                    value={formData.runner.restHeartRate}
+                    onChange={(value) => updateRunnerField("restHeartRate", value)}
+                  />
+
+                  <AssessmentField
+                    label="Pace 5 km"
+                    unit="/km"
+                    value={formData.runner.pace5k}
+                    onChange={(value) => updateRunnerField("pace5k", value)}
+                  />
+
+                  <AssessmentField
+                    label="Pace 10 km"
+                    unit="/km"
+                    value={formData.runner.pace10k}
+                    onChange={(value) => updateRunnerField("pace10k", value)}
+                  />
+
+                  <AssessmentField
+                    label="Cadência"
+                    unit="spm"
+                    value={formData.runner.cadence}
+                    onChange={(value) => updateRunnerField("cadence", value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Prova-alvo</Label>
+                    <Input
+                      placeholder="Ex: 5 km, 10 km, meia maratona..."
+                      value={formData.runner.targetRace}
+                      onChange={(e) => updateRunnerField("targetRace", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Dor atual</Label>
+                    <Input
+                      placeholder="Ex: joelho, panturrilha, sem dor..."
+                      value={formData.runner.currentPain}
+                      onChange={(e) => updateRunnerField("currentPain", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Histórico de lesões</Label>
+                  <Textarea
+                    rows={3}
+                    placeholder="Canelite, fascite plantar, dor lombar, etc."
+                    value={formData.runner.injuryHistory}
+                    onChange={(e) => updateRunnerField("injuryHistory", e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Observações da corrida</Label>
+                  <Textarea
+                    rows={3}
+                    placeholder="Cadência, técnica, desequilíbrios, recomendações..."
+                    value={formData.runner.runningNotes}
+                    onChange={(e) => updateRunnerField("runningNotes", e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               <div className="space-y-1.5">

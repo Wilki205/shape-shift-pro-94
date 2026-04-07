@@ -15,10 +15,15 @@ import { useNavigate } from "react-router-dom";
 
 type AssessmentFilter = "all" | "recent" | "older";
 
-function formatDate(date: string) {
+function formatDate(date?: string) {
+  if (!date) return "Não informado";
   const [year, month, day] = date.split("-");
   if (!year || !month || !day) return date;
   return `${day}/${month}/${year}`;
+}
+
+function formatValue(value?: string | number | null, fallback = "Não informado") {
+  return value !== undefined && value !== null && value !== "" ? String(value) : fallback;
 }
 
 function getMethodLabel(method?: string) {
@@ -26,6 +31,16 @@ function getMethodLabel(method?: string) {
   if (method === "bioimpedance") return "Bioimpedância";
   if (method === "both") return "Dobras + Bio";
   return "Padrão";
+}
+
+function getSexLabel(sex?: string) {
+  if (sex === "M") return "Masculino";
+  if (sex === "F") return "Feminino";
+  return "Não informado";
+}
+
+function getCategoryLabel(category?: string) {
+  return category === "runner" ? "Corredores" : "Geral";
 }
 
 function AvailabilityCard({
@@ -50,6 +65,8 @@ export default function Assessments() {
   const [filter, setFilter] = useState<AssessmentFilter>("all");
   const navigate = useNavigate();
 
+  const totalAssessments = mockAssessments.length;
+
   const assessments = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
@@ -60,12 +77,16 @@ export default function Assessments() {
         const studentName = student?.name.toLowerCase() || "";
         const protocol = assessment.protocol?.toLowerCase() || "";
         const method = getMethodLabel(assessment.method).toLowerCase();
+        const sex = getSexLabel(assessment.biologicalSex).toLowerCase();
+        const category = getCategoryLabel(assessment.category).toLowerCase();
 
         const matchesSearch =
           studentName.includes(normalizedSearch) ||
           assessment.assessorName.toLowerCase().includes(normalizedSearch) ||
           protocol.includes(normalizedSearch) ||
-          method.includes(normalizedSearch);
+          method.includes(normalizedSearch) ||
+          sex.includes(normalizedSearch) ||
+          category.includes(normalizedSearch);
 
         if (filter === "all") return matchesSearch;
         if (filter === "recent") return matchesSearch && assessment.date >= "2026-01-01";
@@ -83,7 +104,7 @@ export default function Assessments() {
             Avaliações
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {assessments.length} avaliações encontradas
+            {assessments.length} de {totalAssessments} avaliações
           </p>
         </div>
 
@@ -104,7 +125,7 @@ export default function Assessments() {
         <div className="relative max-w-xl flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por aluno, avaliador, método ou protocolo..."
+            placeholder="Buscar por aluno, avaliador, método, protocolo, sexo ou categoria..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -137,7 +158,6 @@ export default function Assessments() {
 
               return (
                 <div key={assessment.id} className="space-y-4 px-5 py-4">
-                  {/* Topo */}
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex min-w-0 items-center gap-3">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
@@ -149,7 +169,7 @@ export default function Assessments() {
                           {student?.name || "Aluno não encontrado"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Avaliador: {assessment.assessorName}
+                          Avaliador: {formatValue(assessment.assessorName)}
                         </p>
                       </div>
                     </div>
@@ -165,27 +185,26 @@ export default function Assessments() {
                       <div className="rounded-lg border bg-background p-3">
                         <p className="text-[11px] text-muted-foreground">Peso</p>
                         <p className="mt-1 font-medium text-foreground">
-                          {assessment.weight}kg
+                          {formatValue(assessment.weight)}kg
                         </p>
                       </div>
 
                       <div className="rounded-lg border bg-background p-3">
                         <p className="text-[11px] text-muted-foreground">% Gordura</p>
                         <p className="mt-1 font-medium text-foreground">
-                          {assessment.bodyFat}%
+                          {formatValue(assessment.bodyFat)}%
                         </p>
                       </div>
 
                       <div className="rounded-lg border bg-background p-3">
                         <p className="text-[11px] text-muted-foreground">IMC</p>
                         <p className="mt-1 font-medium text-foreground">
-                          {assessment.bmi}
+                          {formatValue(assessment.bmi)}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Meio */}
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="secondary" className="w-fit">
@@ -199,7 +218,11 @@ export default function Assessments() {
                       )}
 
                       <Badge variant="outline" className="w-fit">
-                        Registrada
+                        {getSexLabel(assessment.biologicalSex)}
+                      </Badge>
+
+                      <Badge variant="outline" className="w-fit">
+                        {getCategoryLabel(assessment.category)}
                       </Badge>
                     </div>
 
@@ -215,7 +238,6 @@ export default function Assessments() {
                     </div>
                   </div>
 
-                  {/* Baixo */}
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <AvailabilityCard
                       title="Circunferências"

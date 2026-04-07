@@ -33,6 +33,9 @@ export function StatsCard({
   trend,
   variant = "default",
 }: StatsCardProps) {
+  const formattedTrend =
+    trend && (Number.isInteger(trend.value) ? trend.value : trend.value.toFixed(1));
+
   return (
     <div className="rounded-xl border bg-card p-5 shadow-card transition-shadow hover:shadow-elevated">
       <div className="flex items-start justify-between gap-4">
@@ -55,7 +58,7 @@ export function StatsCard({
               )}
             >
               {trend.positive ? "+" : ""}
-              {trend.value}% vs mês anterior
+              {formattedTrend}% vs mês anterior
             </p>
           )}
         </div>
@@ -66,7 +69,7 @@ export function StatsCard({
             getIconContainerClass(variant),
           )}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-5 w-5" aria-hidden="true" />
         </div>
       </div>
     </div>

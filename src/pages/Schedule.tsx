@@ -73,7 +73,8 @@ const initialAppointments: Appointment[] = [
   },
 ];
 
-function formatDate(date: string) {
+function formatDate(date?: string) {
+  if (!date) return "Não informado";
   const [year, month, day] = date.split("-");
   if (!year || !month || !day) return date;
   return `${day}/${month}/${year}`;
@@ -97,6 +98,16 @@ function sortAppointments(items: Appointment[]) {
   });
 }
 
+function getEmptyAppointment(studentId = ""): NewAppointmentForm {
+  return {
+    studentId,
+    date: "",
+    time: "",
+    type: "Reavaliação",
+    status: "pending",
+  };
+}
+
 export default function Schedule() {
   const navigate = useNavigate();
   const [appointments, setAppointments] =
@@ -105,13 +116,9 @@ export default function Schedule() {
   const [filter, setFilter] = useState<AppointmentFilter>("all");
   const [isCreating, setIsCreating] = useState(false);
 
-  const [newAppointment, setNewAppointment] = useState<NewAppointmentForm>({
-    studentId: mockStudents[0]?.id || "",
-    date: "",
-    time: "",
-    type: "Reavaliação",
-    status: "pending",
-  });
+  const [newAppointment, setNewAppointment] = useState<NewAppointmentForm>(
+    getEmptyAppointment(mockStudents[0]?.id || ""),
+  );
 
   const orderedAppointments = useMemo(
     () => sortAppointments(appointments),
@@ -149,6 +156,15 @@ export default function Schedule() {
 
   const handleOpenCreate = () => {
     setIsCreating((prev) => !prev);
+
+    if (isCreating) {
+      setNewAppointment(getEmptyAppointment(mockStudents[0]?.id || ""));
+    }
+  };
+
+  const handleCloseCreate = () => {
+    setIsCreating(false);
+    setNewAppointment(getEmptyAppointment(mockStudents[0]?.id || ""));
   };
 
   const handleConfirmAppointment = (appointmentId: string) => {
@@ -181,6 +197,30 @@ export default function Schedule() {
       return;
     }
 
+    const appointmentDateTime = new Date(`${newAppointment.date}T${newAppointment.time}`);
+    if (Number.isNaN(appointmentDateTime.getTime())) {
+      toast.error("Informe uma data e horário válidos.");
+      return;
+    }
+
+    const now = new Date();
+    if (appointmentDateTime < now) {
+      toast.error("Não é possível criar agendamento no passado.");
+      return;
+    }
+
+    const hasConflict = appointments.some(
+      (appointment) =>
+        appointment.studentId === newAppointment.studentId &&
+        appointment.date === newAppointment.date &&
+        appointment.time === newAppointment.time,
+    );
+
+    if (hasConflict) {
+      toast.error("Já existe um agendamento desse aluno nesse mesmo horário.");
+      return;
+    }
+
     const createdAppointment: Appointment = {
       id: String(Date.now()),
       studentId: newAppointment.studentId,
@@ -191,16 +231,7 @@ export default function Schedule() {
     };
 
     setAppointments((prev) => sortAppointments([...prev, createdAppointment]));
-
-    setNewAppointment({
-      studentId: mockStudents[0]?.id || "",
-      date: "",
-      time: "",
-      type: "Reavaliação",
-      status: "pending",
-    });
-
-    setIsCreating(false);
+    handleCloseCreate();
     toast.success("Novo agendamento criado com sucesso.");
   };
 
@@ -320,7 +351,7 @@ export default function Schedule() {
           </div>
 
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsCreating(false)}>
+            <Button variant="outline" onClick={handleCloseCreate}>
               Cancelar
             </Button>
             <Button onClick={handleCreateAppointment}>
@@ -370,12 +401,12 @@ export default function Schedule() {
           <p className="mt-1 font-heading text-xl font-bold text-foreground">
             {nextAppointment
               ? `${formatDate(nextAppointment.date)} • ${nextAppointment.time}`
-              : "—"}
+              : "Não informado"}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -386,7 +417,7 @@ export default function Schedule() {
           />
         </div>
 
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {(["all", "confirmed", "pending"] as const).map((currentFilter) => (
             <Button
               key={currentFilter}
@@ -411,7 +442,7 @@ export default function Schedule() {
               Próximos atendimentos
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Visualize os horários previstos para os próximos dias.
+              {filteredAppointments.length} de {appointments.length} agendamentos exibidos
             </p>
           </div>
         </div>

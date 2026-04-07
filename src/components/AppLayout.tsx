@@ -9,6 +9,7 @@ const pageTitleRoutes = [
   { pattern: /^\/dashboard\/?$/, title: "Dashboard" },
   { pattern: /^\/students\/new\/?$/, title: "Novo aluno" },
   { pattern: /^\/students\/[^/]+\/assessment\/new\/?$/, title: "Nova avaliação" },
+  { pattern: /^\/reports\/[^/]+\/?$/, title: "Detalhe do relatório" },
   { pattern: /^\/students(?:\/.*)?$/, title: "Alunos" },
   { pattern: /^\/assessments\/?$/, title: "Avaliações" },
   { pattern: /^\/reports\/?$/, title: "Relatórios" },
@@ -27,6 +28,7 @@ function getPageTitle(pathname: string) {
 export function AppLayout() {
   const location = useLocation();
   const title = getPageTitle(location.pathname);
+  const hasNotifications = false;
 
   const handleNotificationsClick = () => {
     toast.info("Você não possui novas notificações no momento.");
@@ -56,7 +58,9 @@ export function AppLayout() {
                 title="Notificações"
               >
                 <Bell className="h-5 w-5" />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+                {hasNotifications && (
+                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+                )}
               </Button>
             </div>
           </header>
